@@ -13,15 +13,19 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server.js"
+      "dest": "server.js",
+      "methods": ["GET", "POST", "PUT", "DELETE"]
     },
     {
-      "src": "/(.*\\.(ico|css|js|png|jpg|jpeg|gif|svg))$",
+      "src": "/(.*\\.(ico|css|js|png|jpg|jpeg|gif|svg|webp))$",
       "dest": "/public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "/public/index.html"
     }
-  ]
+  ],
+  "env": {
+    "BLOB_READ_WRITE_TOKEN": "@blob_read_write_token"
+  }
 }
