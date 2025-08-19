@@ -20,6 +20,7 @@
             background-color: #001f3f; /* Azul marinho */
             border-color: #001f3f;
             color: white;
+            margin-right: 5px;
         }
 
         .btn-update:hover {
@@ -91,8 +92,8 @@
                             <div class="card">
                                 <img src="${file.url}" class="card-img-top" alt="Imagem">
                                 <div class="card-body text-center">
-                                    <button class="btn btn-update">Atualizar</button>
-                                    <button class="btn btn-delete">Deletar</button>
+                                    <button class="btn btn-update" data-url="${file.url}">Atualizar</button>
+                                    <button class="btn btn-delete" data-url="${file.url}">Deletar</button>
                                 </div>
                             </div>
                         </div>
@@ -123,7 +124,6 @@
                     method: 'POST',
                     headers: {
                         'x-vercel-filename': file.name,
-                        'Content-Type': file.type,
                     },
                     body: file,
                 });
@@ -152,16 +152,22 @@
         async function deleteImage(imageUrl) {
             if (!confirm('Tem certeza que deseja deletar esta imagem?')) return;
             try {
-                const response = await fetch(`/api/delete/${encodeURIComponent(imageUrl)}`, { 
-                    method: 'DELETE' 
+                const response = await fetch('/api/delete', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: imageUrl }),
                 });
+                
                 const data = await response.json();
-                if (data.success) {
+                
+                if (response.ok && data.success) {
                     statusEl.textContent = 'Imagem deletada com sucesso!';
                     statusEl.className = 'mt-3 text-center text-success';
                     loadGallery();
                 } else {
-                    throw new Error(data.message || 'Erro desconhecido');
+                    throw new Error(data.message || 'Erro ao deletar imagem');
                 }
             } catch (error) {
                 statusEl.textContent = 'Erro ao deletar imagem: ' + error.message;
@@ -171,43 +177,62 @@
         }
 
         // Atualizar imagem
-        async function updateImage(imageUrl) {
+        async function updateImage(oldUrl) {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
+            
             input.onchange = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
+                
                 try {
-                    statusEl.textContent = 'Atualizando imagem...';
+                    statusEl.textContent = 'Enviando nova imagem...';
                     statusEl.className = 'mt-3 text-center text-primary';
-                    const formData = new FormData();
-                    formData.append('file', file);
+
+                    // Primeiro faz upload da nova imagem
                     const uploadResponse = await fetch('/api/upload', {
                         method: 'POST',
                         headers: {
                             'x-vercel-filename': file.name,
-                            'Content-Type': file.type,
                         },
                         body: file,
                     });
+                    
                     const newBlob = await uploadResponse.json();
+                    
                     if (uploadResponse.ok) {
-                        // Atualiza a referência para a nova imagem
-                        const updateResponse = await fetch(`/api/update/${encodeURIComponent(imageUrl)}`, {
+                        // Depois atualiza a referência (simulação)
+                        const updateResponse = await fetch('/api/update', {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
-                                newFileUrl: newBlob.url,
-                                filename: file.name
+                                oldUrl: oldUrl,
+                                newUrl: newBlob.url
                             }),
                         });
+                        
                         const updateData = await updateResponse.json();
-                        if (updateData.success) {
+                        
+                        if (updateResponse.ok && updateData.success) {
                             statusEl.textContent = 'Imagem atualizada com sucesso!';
                             statusEl.className = 'mt-3 text-center text-success';
+                            
+                            // Opcional: deletar a imagem antiga
+                            try {
+                                await fetch('/api/delete', {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({ url: oldUrl }),
+                                });
+                            } catch (deleteError) {
+                                console.error('Erro ao deletar imagem antiga:', deleteError);
+                            }
+                            
                             loadGallery();
                         } else {
                             throw new Error(updateData.message || 'Erro ao atualizar referência');
@@ -221,21 +246,20 @@
                     console.error(error);
                 }
             };
+            
             input.click();
         }
 
         // Event delegation para os botões
         galleryEl.addEventListener('click', (event) => {
             if (event.target.classList.contains('btn-delete')) {
-                const card = event.target.closest('.card');
-                const img = card.querySelector('img');
-                deleteImage(img.src);
+                const imageUrl = event.target.getAttribute('data-url');
+                deleteImage(imageUrl);
             }
 
             if (event.target.classList.contains('btn-update')) {
-                const card = event.target.closest('.card');
-                const img = card.querySelector('img');
-                updateImage(img.src);
+                const imageUrl = event.target.getAttribute('data-url');
+                updateImage(imageUrl);
             }
         });
 
