@@ -14,6 +14,28 @@
     .spinner { display: none; }
     .loading .spinner { display: inline-block; }
     .loading .text { display: none; }
+    /* Estilos para os botões "Atualizar" e "Deletar" */
+.btn-update {
+    background-color: #001f3f; /* Azul marinho */
+    border-color: #001f3f;
+    color: white;
+}
+
+.btn-update:hover {
+    background-color: #003366; /* Azul marinho um pouco mais escuro */
+    border-color: #003366;
+}
+
+.btn-delete {
+    background-color: #001f3f; /* Azul marinho */
+    border-color: #001f3f;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #003366; /* Azul marinho um pouco mais escuro */
+    border-color: #003366;
+}
 </style>
 </head>
 <body>
@@ -24,7 +46,7 @@
 <div class="input-group">
 <input type="file" class="form-control" id="fileInput" name="file" required accept="image/*">
 <button type="submit" class="btn btn-primary">
-<span class="spinner-border spinner-border-sm spinner" role="status"></span>
+<span class="spinner-border spinner-border-sm text-light d-none spinner" role="status"></span>
 <span class="text">Enviar</span>
 </button>
 </div>
@@ -202,6 +224,64 @@
         const img = card.querySelector('img');
         updateImage(img.src);
       }
+    });
+       // Elementos DOM
+    const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const statusEl = document.getElementById('status');
+    const galleryEl = document.getElementById('gallery');
+    
+    // Novas referências para o spinner e o texto do botão
+    const uploadButton = form.querySelector('button[type="submit"]');
+    const spinner = uploadButton.querySelector('.spinner');
+    const buttonText = uploadButton.querySelector('.text');
+
+    // ... sua função loadGallery() ...
+
+    // Upload de arquivo
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        // **Ajuste aqui:** Mostra o spinner e esconde o texto
+        spinner.classList.remove('d-none');
+        buttonText.classList.add('d-none');
+        uploadButton.disabled = true; // Desabilita o botão para evitar múltiplos cliques
+
+        statusEl.innerHTML = 'Enviando...';
+        statusEl.className = 'mt-3 text-center text-primary';
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                headers: {
+                    'x-vercel-filename': file.name,
+                    'Content-Type': file.type,
+                },
+                body: file,
+            });
+
+            const newBlob = await response.json();
+
+            if (response.ok) {
+                statusEl.innerHTML = '✅ Upload concluído!';
+                statusEl.className = 'mt-3 text-center text-success';
+                form.reset();
+                loadGallery();
+            } else {
+                throw new Error(newBlob.message);
+            }
+        } catch (error) {
+            statusEl.textContent = `❌ Erro no upload: ${error.message}`;
+            statusEl.className = 'mt-3 text-center text-danger';
+        } finally {
+            // **Ajuste aqui:** Esconde o spinner e mostra o texto
+            spinner.classList.add('d-none');
+            buttonText.classList.remove('d-none');
+            uploadButton.disabled = false; // Habilita o botão novamente
+        }
     });
  
     // Carregar galeria ao iniciar
