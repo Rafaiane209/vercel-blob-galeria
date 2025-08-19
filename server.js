@@ -2,7 +2,7 @@
 
 // --- 1. Importação das Bibliotecas ---
 const express = require('express');
-const { put, list, del } = require('@vercel/blob'); // Adicionei a função 'del' para deletar
+const { put, list, del } = require('@vercel/blob');
 const dotenv = require('dotenv');
 const path = require('path');
 
@@ -66,16 +66,14 @@ app.delete('/api/delete', async (req, res) => {
 // Rota para ATUALIZAR arquivo (método PUT)
 app.put('/api/update', async (req, res) => {
   try {
-    // Esta é uma implementação simplificada
-    // Na prática, você precisaria de um banco de dados para gerenciar as referências
     const { oldUrl, newUrl } = req.body;
     
     if (!oldUrl || !newUrl) {
       return res.status(400).json({ message: 'URLs antiga e nova são obrigatórias.' });
     }
 
-    // Aqui você normalmente atualizaria uma referência no banco de dados
-    // Como não temos BD, apenas retornamos sucesso
+    // Como o Vercel Blob não permite atualização direta, apenas retornamos a nova URL
+    // Em um sistema real, você teria um banco de dados para gerenciar as referências
     res.status(200).json({ 
       success: true, 
       message: 'Referência atualizada com sucesso.',
@@ -89,6 +87,11 @@ app.put('/api/update', async (req, res) => {
 
 // --- 4. Servindo o Frontend ---
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Rota para servir o arquivo HTML principal
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // --- 5. Inicialização do Servidor ---
 const PORT = process.env.PORT || 3000;
